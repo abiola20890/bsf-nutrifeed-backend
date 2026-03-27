@@ -1,58 +1,31 @@
-version: '3.9'
+
+version: "3.9"
 
 services:
 
-  # ── BACKEND API ──────────────────────────────────────
   api:
+
     build:
+
       context: .
+
       target: development
+
     container_name: bsf-nutrifeed-api
+
     ports:
-      - '5000:5000'
-    environment:
-      - NODE_ENV=development
-      - PORT=5000
-      - MONGO_URI=mongodb://mongo:27017/bsf_nutrifeed
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN}
+
+      - "5000:5000"
+
+    env_file:
+
+      - .env
+
     volumes:
-      - .:/app                    # hot reload in dev
-      - /app/node_modules         # prevent host override
-    depends_on:
-      mongo:
-        condition: service_healthy
+
+      - .:/app
+
+      - /app/node_modules
+
     restart: unless-stopped
 
-  # ── MONGODB ──────────────────────────────────────────
-  mongo:
-    image: mongo:7
-    container_name: bsf-nutrifeed-mongo
-    ports:
-      - '27017:27017'
-    volumes:
-      - mongo_data:/data/db       # persist data
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-volumes:
-  mongo_data:
-```
-
----
-
-## 3. `.dockerignore`
-```
-node_modules
-npm-debug.log
-.env
-.git
-.gitignore
-logs
-README.md

@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 const connectDB = async (retries = 5, delay = 5000) => {
   while (retries) {
     try {
-      const conn = await mongoose.connect(process.env.MONGODB_URI);
+      const conn = await mongoose.connect(process.env.MONGO_URI);
 
       console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
       return; // success → exit loop

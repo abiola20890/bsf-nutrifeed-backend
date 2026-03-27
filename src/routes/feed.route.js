@@ -8,7 +8,7 @@ import {
 } from '../controllers/feed.controller.js';
 import { protect } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.js';
-import { validateObjectId } from '../middlewares/validateobjectID.js';
+import { validateObjectId } from '../middlewares/validateObjectId.js';
 import { createFeedSchema, updateFeedSchema } from '../validation/feed.validation.js';
 
 const router = Router();
