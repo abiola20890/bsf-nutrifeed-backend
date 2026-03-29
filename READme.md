@@ -2,10 +2,21 @@
 
 A scalable, data-driven backend system for sustainable Black Soldier Fly (BSF) poultry feed production, developed in alignment with **UN SDG 3 — Good Health and Well-being**.
 
-Built by Ibilola Abiola  
+Built by Ibilola Abiola
+
 ---
 
-## 🚀 Tech Stack
+## 🚀 Live Demo
+
+| Environment | URL |
+|---|---|
+| Production API | https://bsf-nutrifeed-backend.onrender.com |
+| Swagger Docs | https://bsf-nutrifeed-backend.onrender.com/api-docs |
+| Health Check | https://bsf-nutrifeed-backend.onrender.com/health |
+
+---
+
+## 🛠️ Tech Stack
 
 | Technology | Purpose |
 |---|---|
@@ -14,7 +25,8 @@ Built by Ibilola Abiola
 | JSON Web Tokens (JWT) | Authentication |
 | Zod | Input validation |
 | Docker | Containerization |
-| GitHub Codespaces | Cloud development & deployment |
+| Render | Cloud deployment |
+| GitHub Codespaces | Cloud development |
 
 ---
 
@@ -25,7 +37,8 @@ bsf-nutrifeed-backend/
 │   └── .gitkeep
 ├── src/
 │   ├── config/
-│   │   └── db.js                  # MongoDB connection with retry logic
+│   │   ├── db.js                  # MongoDB connection with retry logic
+│   │   └── swagger.js             # Swagger/OpenAPI configuration
 │   ├── controllers/
 │   │   ├── auth.controller.js     # Register, login, get current user
 │   │   ├── feed.controller.js     # Feed record CRUD
@@ -121,6 +134,25 @@ docker-compose up --build
 ```bash
 docker-compose down
 ```
+
+---
+
+## 📖 API Documentation
+
+### Swagger UI (Interactive)
+Full interactive API documentation available at:
+```
+https://bsf-nutrifeed-backend.onrender.com/api-docs
+```
+> For local development:
+```
+http://localhost:5000/api-docs
+```
+
+### Postman Collection
+Import the Postman collection to test all endpoints locally or on the live server.
+
+**Base URL:** `https://bsf-nutrifeed-backend.onrender.com`
 
 ---
 
@@ -226,8 +258,7 @@ POST /api/feed
   "data": {
     "batchId": "BATCH-001",
     "status": "ongoing",
-    "efficiency": "0.00",
-    "..."  : "..."
+    "efficiency": "0.00"
   }
 }
 ```
@@ -260,8 +291,7 @@ POST /api/monitor
   "message": "Monitoring log created successfully",
   "data": {
     "dailyEfficiency": "0.84",
-    "mortalityStatus": "healthy",
-    "..." : "..."
+    "mortalityStatus": "healthy"
   }
 }
 ```
@@ -331,6 +361,15 @@ if (endDate && startDate && endDate <= startDate) {
 Object.assign(existing, req.body);
 await existing.save();
 ```
+
+---
+
+**5. Express 5 Wildcard Route Incompatibility**
+`app.options('*', cors())` crashed on Render because Express 5 no longer
+supports the `*` wildcard in route paths.
+
+**Fix:** Removed `app.options('*', cors())` since the `cors()` middleware
+already handles preflight OPTIONS requests automatically.
 
 ---
 
@@ -405,4 +444,5 @@ This project is developed for educational purposes as part of the
 ## 👥 Author
 
 **BSF-Nutrifeed Backend**
-Developed by Ibilola Abiola In alignment with UN SDG 3 — Good Health and Well-being
+Developed by Ibilola Abiola
+In alignment with UN SDG 3 — Good Health and Well-being
