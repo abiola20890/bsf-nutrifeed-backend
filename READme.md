@@ -2,8 +2,7 @@
 
 A scalable, data-driven backend system for sustainable Black Soldier Fly (BSF) poultry feed production, developed in alignment with **UN SDG 3 — Good Health and Well-being**.
 
-Built by Ibilola Abiola as a member of the **Otondo Team** | DSHub
-
+Built by Ibilola Abiola  
 ---
 
 ## 🚀 Tech Stack
@@ -406,5 +405,4 @@ This project is developed for educational purposes as part of the
 ## 👥 Author
 
 **BSF-Nutrifeed Backend**
-Developed by Ibilola Abiola from the Otondo Team | DSHub
-In alignment with UN SDG 3 — Good Health and Well-being
+Developed by Ibilola Abiola In alignment with UN SDG 3 — Good Health and Well-being
