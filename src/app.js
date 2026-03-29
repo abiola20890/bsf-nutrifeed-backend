@@ -13,17 +13,16 @@ import 'dotenv/config';
 const app = express();
 
 // ── CORS ─────────────────────────────────────────────
-
-app.use(cors({
+const corsOptions = {
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
-app.options('*', cors()); // 
+};
+app.use(cors(corsOptions));
 
 // ── GLOBAL MIDDLEWARE ────────────────────────────────
 app.use(helmet({
-  crossOriginResourcePolicy: false, // 
+  crossOriginResourcePolicy: false, // ✅ Allow Swagger UI to load resources
 }));
 app.use(morgan('dev'));
 app.use(express.json());
