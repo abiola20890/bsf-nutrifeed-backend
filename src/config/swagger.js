@@ -15,16 +15,17 @@ const options = {
         name: 'IBILOLA ABIOLA',
       },
     },
-    servers: [
-      {
-        url: 'http://localhost:5000',
-        description: 'Local Development Server',
-      },
-      {
-        url: 'https://YOUR-CODESPACE-NAME-5000.app.github.dev',
-        description: 'GitHub Codespaces Server',
-      },
-    ],
+   servers: [
+  {
+    url: 'https://bsf-nutrifeed-backend.onrender.com',
+    description: 'Production Server (Render)',
+  },
+  {
+    url: 'http://localhost:5000',
+    description: 'Local Development Server',
+  },
+],
+    
     components: {
       securitySchemes: {
         BearerAuth: {

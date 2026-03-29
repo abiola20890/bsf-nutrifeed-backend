@@ -12,9 +12,19 @@ import 'dotenv/config';
 
 const app = express();
 
+// ── CORS ─────────────────────────────────────────────
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+app.options('*', cors()); // 
+
 // ── GLOBAL MIDDLEWARE ────────────────────────────────
-app.use(helmet());
-app.use(cors());
+app.use(helmet({
+  crossOriginResourcePolicy: false, // 
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
