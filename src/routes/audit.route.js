@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
-import AuditLog from '../models/AuditLog.js';
+import AuditLog from '../models/auditLog.js';
 import { protect, restrictTo } from '../middlewares/auth.middleware.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 
