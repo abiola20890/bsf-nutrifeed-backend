@@ -70,6 +70,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// 
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'BSF Nutrifeed API 🚀',
+    docs: '/api-docs',
+    health: '/health',
+  });
+});
+
 // ── ROUTES ───────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/feed', feedRoutes);
