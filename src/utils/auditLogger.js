@@ -1,5 +1,5 @@
 // utils/auditLogger.js
-import AuditLog from '../models/AuditLog.js';
+import AuditLog from '../models/auditLog.js';
 
 export const logAudit = async ({
   user,
