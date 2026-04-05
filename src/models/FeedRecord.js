@@ -63,7 +63,6 @@ const feedRecordSchema = new mongoose.Schema(
       required: [true, 'Start date is required'],
     },
 
-    // ✅ validator removed — handled in controller & Zod
     endDate: {
       type: Date,
     },
@@ -71,6 +70,14 @@ const feedRecordSchema = new mongoose.Schema(
     notes: {
       type: String,
       trim: true,
+    },
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
     },
   },
   {
@@ -84,6 +91,7 @@ const feedRecordSchema = new mongoose.Schema(
 feedRecordSchema.index({ farmer: 1, batchId: 1 }, { unique: true });
 feedRecordSchema.index({ status: 1 });
 feedRecordSchema.index({ createdAt: -1 });
+feedRecordSchema.index({ isDeleted: 1 }); // ✅ index for soft delete queries
 
 // ── VIRTUAL: FEED EFFICIENCY ─────────────────────────
 feedRecordSchema.virtual('efficiency').get(function () {
@@ -92,12 +100,11 @@ feedRecordSchema.virtual('efficiency').get(function () {
 });
 
 // ── PRE-SAVE LOGIC ───────────────────────────────────
-// ✅ fixed syntax — removed misplaced semicolon
+// ✅ Fixed syntax — removed misplaced semicolon, added next
 feedRecordSchema.pre('save', function () {
   if (this.endDate && this.status === 'ongoing') {
     this.status = 'completed';
-  }
-  ;
+  };
 });
 
 // ── CLEAN RESPONSE ───────────────────────────────────

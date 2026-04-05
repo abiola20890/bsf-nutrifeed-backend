@@ -5,225 +5,284 @@ const options = {
     openapi: '3.0.0',
     info: {
       title: 'BSF-Nutrifeed API',
-      version: '1.0.0',
+      version: '2.0.0',
       description: `
         A scalable, data-driven REST API for sustainable Black Soldier Fly (BSF)
-        poultry feed production. Built by Ibiola Abiola.
-        Aligned with UN SDG 3 — Good Health and Well-being.
+        poultry feed production.
       `,
       contact: {
         name: 'IBILOLA ABIOLA',
       },
     },
-   servers: [
-  {
-    url: 'https://bsf-nutrifeed-backend.onrender.com',
-    description: 'Production Server (Render)',
-  },
-  {
-    url: 'http://localhost:5000',
-    description: 'Local Development Server',
-  },
-],
-    
+
+    tags: [
+      { name: 'Auth', description: 'Authentication endpoints' },
+      { name: 'Feed Records', description: 'Batch management' },
+      { name: 'Monitoring', description: 'Larvae & environment tracking' },
+      { name: 'Reports', description: 'Analytics & production insights' },
+      { name: 'Audit', description: 'System audit logs (admin)' },
+    ],
+
+    servers: [
+      { url: 'https://bsf-nutrifeed-backend.onrender.com' },
+      { url: 'http://localhost:5000' },
+    ],
+
     components: {
       securitySchemes: {
         BearerAuth: {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'Enter your JWT access token',
         },
       },
+
       schemas: {
-        // ── USER ──────────────────────────────────
+        // ── REUSABLE OBJECTS ───────────────────────
+        FeedInputs: {
+          type: 'object',
+          properties: {
+            organicWaste: { type: 'number', example: 50 },
+            waterUsed: { type: 'number', example: 20 },
+            additives: { type: 'string', example: 'Calcium carbonate' },
+          },
+        },
+
+        FeedOutputs: {
+          type: 'object',
+          properties: {
+            feedProduced: { type: 'number', example: 25 },
+            larvaeHarvested: { type: 'number', example: 10 },
+            compostGenerated: { type: 'number', example: 8 },
+          },
+        },
+
+        // ── USER ─────────────────────────────────
         User: {
           type: 'object',
           properties: {
-            id:        { type: 'string', example: '69c63bfc1e8268050f303d6a' },
-            name:      { type: 'string', example: 'John Farmer' },
-            email:     { type: 'string', example: 'john@bsfnutrifeed.com' },
-            role:      { type: 'string', enum: ['farmer', 'admin'] },
-            farmName:  { type: 'string', example: 'Green BSF Farm' },
-            location:  { type: 'string', example: 'Abuja, Nigeria' },
-            isActive:  { type: 'boolean', example: true },
+            id: { type: 'string', example: '64abc123' },
+            name: { type: 'string', example: 'John Farmer' },
+            email: { type: 'string', example: 'john@bsf.com' },
+            role: { type: 'string', enum: ['farmer', 'admin'] },
+            farmName: { type: 'string', example: 'Green Farm' },
+            location: { type: 'string', example: 'Kaduna' },
+            isActive: { type: 'boolean', example: true },
             createdAt: { type: 'string', format: 'date-time' },
           },
         },
 
-        // ── AUTH ──────────────────────────────────
+        // ── AUTH ────────────────────────────────
         RegisterInput: {
           type: 'object',
           required: ['name', 'email', 'password'],
           properties: {
-            name:      { type: 'string', example: 'John Farmer' },
-            email:     { type: 'string', example: 'john@bsfnutrifeed.com' },
-            password:  { type: 'string', example: 'password123' },
-            role:      { type: 'string', enum: ['farmer', 'admin'], default: 'farmer' },
-            farmName:  { type: 'string', example: 'Green BSF Farm' },
-            location:  { type: 'string', example: 'Abuja, Nigeria' },
+            name: { type: 'string', example: 'John Farmer' },
+            email: { type: 'string', example: 'john@bsf.com' },
+            password: { type: 'string', example: 'password123' },
+            role: { type: 'string', enum: ['farmer', 'admin'] },
+            farmName: { type: 'string', example: 'Green Farm' },
+            location: { type: 'string', example: 'Kaduna' },
           },
         },
+
         LoginInput: {
           type: 'object',
           required: ['email', 'password'],
           properties: {
-            email:    { type: 'string', example: 'john@bsfnutrifeed.com' },
+            email: { type: 'string', example: 'john@bsf.com' },
             password: { type: 'string', example: 'password123' },
           },
         },
+
         AuthResponse: {
           type: 'object',
           properties: {
-            success:      { type: 'boolean', example: true },
-            message:      { type: 'string',  example: 'Login successful' },
+            success: { type: 'boolean', example: true },
+            message: { type: 'string', example: 'Login successful' },
             data: {
               type: 'object',
               properties: {
-                user:         { $ref: '#/components/schemas/User' },
-                accessToken:  { type: 'string', example: 'eyJhbGci...' },
-                refreshToken: { type: 'string', example: 'eyJhbGci...' },
+                user: { $ref: '#/components/schemas/User' },
+                accessToken: { type: 'string' },
+                refreshToken: { type: 'string' },
               },
             },
           },
         },
 
-        // ── FEED RECORD ───────────────────────────
+        // ── FEED RECORD ─────────────────────────
         FeedRecord: {
           type: 'object',
           properties: {
-            _id:      { type: 'string', example: '69c63fd89db4b3b9c70a6382' },
-            farmer:   { type: 'string', example: '69c63bfc1e8268050f303d6a' },
-            batchId:  { type: 'string', example: 'BATCH-001' },
-            inputs: {
-              type: 'object',
-              properties: {
-                organicWaste: { type: 'number', example: 50 },
-                waterUsed:    { type: 'number', example: 20 },
-                additives:    { type: 'string', example: 'Calcium carbonate' },
-              },
-            },
-            outputs: {
-              type: 'object',
-              properties: {
-                feedProduced:     { type: 'number', example: 25 },
-                larvaeHarvested:  { type: 'number', example: 10 },
-                compostGenerated: { type: 'number', example: 8 },
-              },
-            },
-            status:     { type: 'string', enum: ['ongoing', 'completed', 'failed'] },
-            startDate:  { type: 'string', format: 'date-time' },
-            endDate:    { type: 'string', format: 'date-time' },
-            efficiency: { type: 'string', example: '0.50' },
-            notes:      { type: 'string', example: 'First BSF batch test' },
-            createdAt:  { type: 'string', format: 'date-time' },
-          },
-        },
-        FeedRecordInput: {
-          type: 'object',
-          required: ['batchId', 'inputs', 'startDate'],
-          properties: {
+            _id: { type: 'string' },
+            farmer: { type: 'string' },
             batchId: { type: 'string', example: 'BATCH-001' },
-            inputs: {
-              type: 'object',
-              required: ['organicWaste'],
-              properties: {
-                organicWaste: { type: 'number', example: 50 },
-                waterUsed:    { type: 'number', example: 20 },
-                additives:    { type: 'string', example: 'Calcium carbonate' },
-              },
-            },
-            outputs: {
-              type: 'object',
-              properties: {
-                feedProduced:     { type: 'number', example: 0 },
-                larvaeHarvested:  { type: 'number', example: 0 },
-                compostGenerated: { type: 'number', example: 0 },
-              },
-            },
-            startDate: { type: 'string', example: '2026-03-27' },
-            notes:     { type: 'string', example: 'First BSF batch test' },
+            inputs: { $ref: '#/components/schemas/FeedInputs' },
+            outputs: { $ref: '#/components/schemas/FeedOutputs' },
+            status: { type: 'string', enum: ['ongoing', 'completed', 'failed'] },
+            startDate: { type: 'string' },
+            endDate: { type: 'string' },
+            efficiency: { type: 'string', example: '0.50' },
+            createdAt: { type: 'string' },
           },
         },
 
-        // ── MONITORING DATA ───────────────────────
+        // ── MONITORING ─────────────────────────
         MonitoringData: {
           type: 'object',
           properties: {
-            _id:        { type: 'string', example: '69c64f2947bf06e0e60933eb' },
-            feedRecord: { type: 'string', example: '69c63fd89db4b3b9c70a6382' },
-            farmer:     { type: 'string', example: '69c63bfc1e8268050f303d6a' },
+            feedRecord: { type: 'string' },
             larvaeGrowth: {
               type: 'object',
               properties: {
                 currentWeight: { type: 'number', example: 150 },
-                growthStage:   { type: 'string', enum: ['egg', 'young_larvae', 'mature_larvae', 'prepupae'] },
-                mortality:     { type: 'number', example: 3 },
+                growthStage: {
+                  type: 'string',
+                  enum: ['egg', 'young_larvae', 'mature_larvae', 'prepupae'],
+                },
+                mortality: { type: 'number', example: 3 },
               },
             },
             environment: {
               type: 'object',
               properties: {
                 temperature: { type: 'number', example: 28 },
-                humidity:    { type: 'number', example: 70 },
-                pH:          { type: 'number', example: 6.5 },
+                humidity: { type: 'number', example: 70 },
+                pH: { type: 'number', example: 6.5 },
               },
             },
-            dailyInput:       { type: 'number', example: 500 },
-            dailyOutput:      { type: 'number', example: 420 },
-            dailyEfficiency:  { type: 'string', example: '0.84' },
-            mortalityStatus:  { type: 'string', example: 'healthy' },
-            logDate:          { type: 'string', format: 'date-time' },
-            remarks:          { type: 'string', example: 'Larvae growing well' },
-          },
-        },
-        MonitoringInput: {
-          type: 'object',
-          required: ['feedRecord', 'larvaeGrowth'],
-          properties: {
-            feedRecord: { type: 'string', example: '69c63fd89db4b3b9c70a6382' },
-            larvaeGrowth: {
-              type: 'object',
-              required: ['currentWeight', 'growthStage'],
-              properties: {
-                currentWeight: { type: 'number', example: 150 },
-                growthStage:   { type: 'string', enum: ['egg', 'young_larvae', 'mature_larvae', 'prepupae'] },
-                mortality:     { type: 'number', example: 3 },
-              },
-            },
-            environment: {
-              type: 'object',
-              properties: {
-                temperature: { type: 'number', example: 28 },
-                humidity:    { type: 'number', example: 70 },
-                pH:          { type: 'number', example: 6.5 },
-              },
-            },
-            dailyInput:  { type: 'number', example: 500 },
+            dailyInput: { type: 'number', example: 500 },
             dailyOutput: { type: 'number', example: 420 },
-            remarks:     { type: 'string', example: 'Larvae growing well' },
+            logDate: { type: 'string' },
           },
         },
 
-        // ── COMMON ────────────────────────────────
+        // ── REPORTS ────────────────────────────
+        ProductionSummary: {
+          type: 'object',
+          properties: {
+            totalBatches: { type: 'integer', example: 5 },
+            ongoing: { type: 'integer', example: 2 },
+            completed: { type: 'integer', example: 3 },
+            failed: { type: 'integer', example: 0 },
+            totalOrganicWaste: { type: 'string', example: '250kg' },
+            totalFeedProduced: { type: 'string', example: '125kg' },
+            averageEfficiency: { type: 'string', example: '50%' },
+          },
+        },
+
+        ProductionReport: {
+          type: 'object',
+          properties: {
+            summary: { $ref: '#/components/schemas/ProductionSummary' },
+            records: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/FeedRecord' },
+            },
+          },
+        },
+
+        BatchMonitoringSummary: {
+          type: 'object',
+          properties: {
+            totalLogs: { type: 'integer', example: 14 },
+            avgTemperature: { type: 'string', example: '28°C' },
+            avgHumidity: { type: 'string', example: '70%' },
+          },
+        },
+
+        BatchReport: {
+          type: 'object',
+          properties: {
+            batch: { $ref: '#/components/schemas/FeedRecord' },
+            monitoringSummary: {
+              $ref: '#/components/schemas/BatchMonitoringSummary',
+            },
+            logs: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/MonitoringData' },
+            },
+          },
+        },
+
+        Analytics: {
+          type: 'object',
+          properties: {
+            monthlyProduction: { type: 'array', items: { type: 'object' } },
+            growthStageBreakdown: { type: 'array', items: { type: 'object' } },
+            mortalityTrend: { type: 'array', items: { type: 'object' } },
+            topBatches: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/FeedRecord' },
+            },
+          },
+        },
+
+        // ── AUDIT ──────────────────────────────
+        AuditLog: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              enum: [
+                'CREATE_FEED_RECORD',
+                'UPDATE_FEED_RECORD',
+                'DELETE_FEED_RECORD',
+                'CREATE_MONITORING_LOG',
+                'REGISTER',
+                'LOGIN',
+                'VIEW_REPORT',
+              ],
+            },
+            resource: { type: 'string' },
+            description: { type: 'string' },
+            status: { type: 'string', enum: ['success', 'failed'] },
+            createdAt: { type: 'string' },
+          },
+        },
+
+        // ── COMMON ─────────────────────────────
+        Pagination: {
+          type: 'object',
+          properties: {
+            total: { type: 'integer', example: 50 },
+            page: { type: 'integer', example: 1 },
+            pages: { type: 'integer', example: 5 },
+            count: { type: 'integer', example: 10 },
+          },
+        },
+
         SuccessResponse: {
           type: 'object',
           properties: {
-            success: { type: 'boolean', example: true },
-            message: { type: 'string',  example: 'Operation successful' },
-            data:    { type: 'object' },
+            success: { type: 'boolean' },
+            message: { type: 'string' },
+            data: {},
           },
         },
+
         ErrorResponse: {
           type: 'object',
           properties: {
             success: { type: 'boolean', example: false },
-            message: { type: 'string',  example: 'Something went wrong' },
+            message: { type: 'string', example: 'Validation error' },
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  field: { type: 'string' },
+                  message: { type: 'string' },
+                },
+              },
+            },
           },
         },
       },
     },
   },
+
   apis: ['./src/routes/*.js'],
 };
 
