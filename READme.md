@@ -431,8 +431,50 @@ docker-compose down
 # View logs
 docker-compose logs -f api
 ```
+## NEW ENDPOINTS 
+
+### Auth Routes — New (Week 2)
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| POST | `/api/auth/refresh-token` | Public | Refresh access token |
+| POST | `/api/auth/logout` | Protected | Logout current user |
+| POST | `/api/auth/forgot-password` | Public | Request password reset |
+| POST | `/api/auth/reset-password/:token` | Public | Reset password with token |
+
+### Report Routes (`/api/reports`) — New (Week 2)
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/api/reports/production` | Protected | Full farm production report |
+| GET | `/api/reports/analytics` | Protected | Monthly trends & analytics |
+| GET | `/api/reports/batch/:batchId` | Protected | Single batch detailed report |
+| GET | `/api/reports/admin/all` | Admin only | All farmers overview |
+
+### Audit Routes (`/api/audit`) — New (Week 2)
+
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| GET | `/api/audit` | Admin only | System audit logs with filters |
 
 ---
+
+## NEW FEATURES
+## ⚡ Week 2 Enhancements
+
+| Feature | Description |
+|---|---|
+| **Caching** | node-cache on dashboard, feed records & reports — 60s TTL |
+| **Rate Limiting** | Global: 100 req/15min · Auth: 10 req/15min |
+| **Soft Delete** | Records marked isDeleted — never permanently lost |
+| **Audit Trail** | Every action logged — who, what, when, where |
+| **Diff Utility** | Only changed fields stored in audit log |
+| **Refresh Tokens** | Full token rotation flow implemented |
+| **Password Reset** | SHA256 hashed token · 10min expiry |
+| **Data Anonymization** | Email, name, IP anonymized in audit logs |
+| **Report Endpoints** | Production, analytics, batch reports |
+| **Admin Dashboard** | Platform-wide farmer overview |
+
 
 ## 📝 License
 
