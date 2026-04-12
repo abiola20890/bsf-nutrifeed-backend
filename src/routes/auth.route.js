@@ -1,13 +1,8 @@
 import { Router } from 'express';
-import { authLimiter } from '../middlewares/rateLimiter.js';
+import { authLimiter, strictLimiter } from '../middlewares/rateLimiter.js';
 import {
-  register,
-  login,
-  getMe,
-  refreshToken,
-  logout,
-  forgotPassword,
-  resetPassword,
+  register, login, getMe, refreshToken,
+  logout, forgotPassword, resetPassword,
 } from '../controllers/auth.controller.js';
 import { protect } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.js';
@@ -20,7 +15,7 @@ const router = Router();
  * /api/auth/register:
  *   post:
  *     summary: Register a new user
- *     description: Creates a new account and returns authentication tokens
+ *     description: Creates a new account and returns authentication tokens. Requires terms of service acceptance.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -36,9 +31,11 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/AuthResponse'
  *       400:
- *         description: Validation error
+ *         description: Validation error or terms not accepted
  *       409:
  *         description: Email already registered
+ *       429:
+ *         description: Too many requests
  */
 router.post('/register', authLimiter, validate(registerSchema), register);
 
@@ -47,7 +44,7 @@ router.post('/register', authLimiter, validate(registerSchema), register);
  * /api/auth/login:
  *   post:
  *     summary: Login with email and password
- *     description: Returns access and refresh tokens
+ *     description: Returns access and refresh tokens. Account locked after 5 failed attempts.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -64,6 +61,10 @@ router.post('/register', authLimiter, validate(registerSchema), register);
  *               $ref: '#/components/schemas/AuthResponse'
  *       401:
  *         description: Invalid credentials
+ *       423:
+ *         description: Account locked — too many failed attempts
+ *       429:
+ *         description: Too many requests
  */
 router.post('/login', authLimiter, validate(loginSchema), login);
 
@@ -89,7 +90,7 @@ router.post('/login', authLimiter, validate(loginSchema), login);
  *                     data:
  *                       $ref: '#/components/schemas/User'
  *       401:
- *         description: Unauthorized
+ *         description: Unauthorized or token blacklisted
  */
 router.get('/me', protect, getMe);
 
@@ -98,7 +99,7 @@ router.get('/me', protect, getMe);
  * /api/auth/refresh-token:
  *   post:
  *     summary: Refresh access token
- *     description: Generates new access and refresh tokens
+ *     description: Generates new access and refresh tokens using a valid refresh token
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -119,7 +120,9 @@ router.get('/me', protect, getMe);
  *             schema:
  *               $ref: '#/components/schemas/AuthResponse'
  *       401:
- *         description: Invalid or expired token
+ *         description: Invalid or expired refresh token
+ *       429:
+ *         description: Too many requests
  */
 router.post('/refresh-token', authLimiter, refreshToken);
 
@@ -128,13 +131,13 @@ router.post('/refresh-token', authLimiter, refreshToken);
  * /api/auth/logout:
  *   post:
  *     summary: Logout user
- *     description: Invalidates user session (client-side token removal)
+ *     description: Blacklists current access token — immediately invalidated server-side
  *     tags: [Auth]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: Logged out successfully
+ *         description: Logged out successfully — token blacklisted
  *         content:
  *           application/json:
  *             schema:
@@ -149,7 +152,7 @@ router.post('/logout', protect, logout);
  * /api/auth/forgot-password:
  *   post:
  *     summary: Request password reset
- *     description: Sends reset token to email (always returns success for security)
+ *     description: Sends reset token to email. Max 3 requests per hour. Always returns same response to prevent email enumeration.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -164,20 +167,22 @@ router.post('/logout', protect, logout);
  *                 example: user@example.com
  *     responses:
  *       200:
- *         description: Reset email sent (or not found — same response)
+ *         description: Reset email sent (same response whether email exists or not)
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SuccessResponse'
+ *       429:
+ *         description: Too many reset requests — try again in 1 hour
  */
-router.post('/forgot-password', authLimiter, forgotPassword);
+router.post('/forgot-password', strictLimiter, forgotPassword);
 
 /**
  * @swagger
  * /api/auth/reset-password/{token}:
  *   post:
- *     summary: Reset password
- *     description: Resets password using token from email
+ *     summary: Reset password with token
+ *     description: Resets password using SHA256 hashed token. Token expires in 10 minutes. Max 3 attempts per hour.
  *     tags: [Auth]
  *     parameters:
  *       - in: path
@@ -185,7 +190,7 @@ router.post('/forgot-password', authLimiter, forgotPassword);
  *         required: true
  *         schema:
  *           type: string
- *         description: Password reset token
+ *         description: Password reset token received via email
  *     requestBody:
  *       required: true
  *       content:
@@ -200,14 +205,16 @@ router.post('/forgot-password', authLimiter, forgotPassword);
  *                 example: newpassword123
  *     responses:
  *       200:
- *         description: Password reset successful
+ *         description: Password reset successful — new tokens issued
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/AuthResponse'
  *       400:
  *         description: Invalid or expired token
+ *       429:
+ *         description: Too many reset attempts — try again in 1 hour
  */
-router.post('/reset-password/:token', authLimiter, resetPassword);
+router.post('/reset-password/:token', strictLimiter, resetPassword);
 
 export default router;

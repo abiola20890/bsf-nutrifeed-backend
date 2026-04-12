@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
 import { errorResponse } from '../utils/response.js';
-
+import { isBlacklisted } from '../utils/tokenBlacklist.js'
 
 // ── PROTECT (JWT VERIFICATION) ───────────────────────
 export const protect = async (req, res, next) => {
@@ -20,14 +20,19 @@ export const protect = async (req, res, next) => {
       return errorResponse(res, 'Access denied. No token provided', 401);
     }
 
-    // 2. Verify token
+    // 2. Check if token is Black listed
+    if (isBlacklisted(token)) {
+      return errorResponse(res, 'Token has been invalidated. Please log in again', 401)
+    }
+
+    // 3. Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (!decoded?.id) {
       return errorResponse(res, 'Invalid token payload', 401);
     }
 
-    // 3. Fetch user (exclude unnecessary fields)
+    // 4. Fetch user (exclude unnecessary fields)
     const user = await User.findById(decoded.id).select(
       '_id name email role isActive'
     );
@@ -36,12 +41,12 @@ export const protect = async (req, res, next) => {
       return errorResponse(res, 'User no longer exists', 401);
     }
 
-    // 4. Check if user is active
+    // 5. Check if user is active
     if (!user.isActive) {
       return errorResponse(res, 'Account is deactivated', 403);
     }
 
-    // 5. Attach user to request
+    // 6. Attach user to request
     req.user = user;
 
     next();

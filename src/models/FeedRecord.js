@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import { generateChecksum } from '../utils/checkSum.js';
+
 
 const feedRecordSchema = new mongoose.Schema(
   {
@@ -79,6 +81,19 @@ const feedRecordSchema = new mongoose.Schema(
     deletedAt: {
       type: Date,
     },
+    checksum: {
+      type: String,
+      select: false,   //hidden by default
+    },
+    dataSource: {
+      type: String,
+      enum: ['manual', 'sensor', 'imported'],
+      default: 'manual',
+    },
+    lastModifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
   },
   {
     timestamps: true,
@@ -100,13 +115,24 @@ feedRecordSchema.virtual('efficiency').get(function () {
 });
 
 // ── PRE-SAVE LOGIC ───────────────────────────────────
-// ✅ Fixed syntax — removed misplaced semicolon, added next
+
 feedRecordSchema.pre('save', function () {
   if (this.endDate && this.status === 'ongoing') {
     this.status = 'completed';
   };
+
+// Generate integrity checksum before saving
+this.checksum = generateChecksum({
+  batchId: this.batchId,
+  farmer: this.farmer,
+  inputs: this.inputs,
+  outputs: this.outputs,
+  startDate: this.startDate,
+
 });
 
+next();
+});
 // ── CLEAN RESPONSE ───────────────────────────────────
 feedRecordSchema.methods.toJSON = function () {
   const obj = this.toObject();

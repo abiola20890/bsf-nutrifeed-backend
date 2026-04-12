@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateChecksum } from '../utils/checkSum.js';
 
 const monitoringDataSchema = new mongoose.Schema(
   {
@@ -74,6 +75,15 @@ const monitoringDataSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    checksum: {
+      type: String,
+      select: false,
+    },
+    dataSource: {
+      type: String,
+      enum: ['manual', 'sensor', 'imported'],
+      default: 'manual',
+    },
   },
   {
     timestamps: true,
@@ -105,6 +115,17 @@ monitoringDataSchema.pre('save', function () {
     date.setHours(0, 0, 0, 0); // normalize to midnight
     this.logDate = date;
   };
+
+  // Generate checksum before saving
+  this.checksum = generateChecksum({
+    feedRecord: this.feedRecord,
+    farmer: this.farmer,
+    larvaeGrowth: this.larvaeGrowth,
+    logDate: this.logDate,
+  });
+
+  next();
+
 });
 
 

@@ -3,6 +3,7 @@ import swaggerJSDoc from 'swagger-jsdoc';
 const options = {
   definition: {
     openapi: '3.0.0',
+
     info: {
       title: 'BSF-Nutrifeed API',
       version: '2.0.0',
@@ -15,17 +16,27 @@ const options = {
       },
     },
 
+    servers: [
+      { url: 'https://bsf-nutrifeed-backend.onrender.com' },
+      { url: 'http://localhost:5000' },
+    ],
+
+    //  GLOBAL SECURITY
+    security: [
+      {
+        BearerAuth: [],
+      },
+    ],
+
     tags: [
       { name: 'Auth', description: 'Authentication endpoints' },
       { name: 'Feed Records', description: 'Batch management' },
       { name: 'Monitoring', description: 'Larvae & environment tracking' },
       { name: 'Reports', description: 'Analytics & production insights' },
       { name: 'Audit', description: 'System audit logs (admin)' },
-    ],
-
-    servers: [
-      { url: 'https://bsf-nutrifeed-backend.onrender.com' },
-      { url: 'http://localhost:5000' },
+      { name: 'Compliance', description: 'NDPR/GDPR Compliance' },
+      { name: 'Integrity', description: 'Data integrity verification' },
+      { name: 'Security', description: 'Threat monitoring & logs (admin)' },
     ],
 
     components: {
@@ -242,6 +253,23 @@ const options = {
           },
         },
 
+        // SECURITY LOG 
+        SecurityLog: {
+          type: 'object',
+          properties: {
+            timestamp: { type: 'string', format: 'date-time' },
+            level: { type: 'string', enum: ['INFO', 'WARN', 'CRITICAL'] },
+            type: { type: 'string' },
+            message: { type: 'string' },
+            ip: { type: 'string' },
+            userId: { type: 'string' },
+            endpoint: { type: 'string' },
+            method: { type: 'string' },
+            userAgent: { type: 'string' },
+            metadata: { type: 'object' },
+          },
+        },
+
         // ── COMMON ─────────────────────────────
         Pagination: {
           type: 'object',
@@ -283,7 +311,8 @@ const options = {
     },
   },
 
-  apis: ['./src/routes/*.js'],
+  
+  apis: ['./src/routes/**/*.js'],
 };
 
 const swaggerSpec = swaggerJSDoc(options);

@@ -26,6 +26,9 @@ export const registerSchema = z.object({
 
   farmName: z.string().trim().optional(),
   location: z.string().trim().optional(),
+  hasAcceptedTerms: z.literal(true, {
+    errorMap: () => ({message: 'You must accept the terms of service'})
+  }),
 }).strict();
 
 export const loginSchema = z.object({

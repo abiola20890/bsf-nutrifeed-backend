@@ -5,6 +5,12 @@ import { generateAccessToken, generateRefreshToken } from '../utils/jwt.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 import { logAudit } from '../utils/auditLogger.js';
 import { sendEmail } from '../utils/sendEmail.js';
+import { isBlacklisted } from '../utils/tokenBlacklist.js'
+import {
+  recordFailedAttempt,
+  isAccountLocked,
+  clearAttempts
+} from '../utils/loginAttempts.js'
 
 // ── REGISTER ──────────────────────────────────────────
 export const register = async (req, res, next) => {
@@ -24,6 +30,8 @@ export const register = async (req, res, next) => {
       role,
       farmName,
       location,
+      hasAcceptedTerms: true,
+      termsAcceptedAt: new Date(),
     });
 
     const accessToken = generateAccessToken(user._id);
@@ -83,91 +91,62 @@ export const login = async (req, res, next) => {
     const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase();
 
+    //  Check account lockout
+    if (isAccountLocked(normalizedEmail)) {
+      return errorResponse(
+        res,
+        'Account temporarily locked due to too many failed attempts. Try again in 15 minutes.',
+        423
+      );
+    }
+
     const user = await User.findOne({ email: normalizedEmail }).select('+password');
 
     if (!user) {
-      await logAudit({
-        user: null,
-        action: 'LOGIN',
-        resource: 'User',
-        resourceId: null,
-        description: `Failed login attempt (email: ${normalizedEmail})`,
-        req,
-        status: 'failed',
-      });
-
+      recordFailedAttempt(normalizedEmail);
+      await logAudit({ user: null, action: 'LOGIN', resource: 'User', resourceId: null, description: `Failed login — email not found: ${normalizedEmail}`, req, status: 'failed' });
       return errorResponse(res, 'Invalid email or password', 401);
     }
 
     if (!user.isActive) {
-      await logAudit({
-        user: user._id,
-        action: 'LOGIN',
-        resource: 'User',
-        resourceId: user._id,
-        description: 'Login attempt on deactivated account',
-        req,
-        status: 'failed',
-      });
-
+      await logAudit({ user: user._id, action: 'LOGIN', resource: 'User', resourceId: user._id, description: 'Login on deactivated account', req, status: 'failed' });
       return errorResponse(res, 'Account is deactivated', 403);
     }
 
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
-      await logAudit({
-        user: user._id,
-        action: 'LOGIN',
-        resource: 'User',
-        resourceId: user._id,
-        description: 'Invalid password attempt',
-        req,
-        status: 'failed',
-      });
+      const locked = recordFailedAttempt(normalizedEmail);
+      await logAudit({ user: user._id, action: 'LOGIN', resource: 'User', resourceId: user._id, description: 'Invalid password attempt', req, status: 'failed' });
+
+      if (locked) {
+        return errorResponse(res, 'Account temporarily locked due to too many failed attempts. Try again in 15 minutes.', 423);
+      }
 
       return errorResponse(res, 'Invalid email or password', 401);
     }
 
-    const accessToken = generateAccessToken(user._id);
+    //  Clear failed attempts on successful login
+    clearAttempts(normalizedEmail);
+
+    const accessToken  = generateAccessToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
 
-    await logAudit({
-      user: user._id,
-      action: 'LOGIN',
-      resource: 'User',
-      resourceId: user._id,
-      description: 'User logged in successfully',
-      req,
-      status: 'success',
-    });
+    await logAudit({ user: user._id, action: 'LOGIN', resource: 'User', resourceId: user._id, description: 'User logged in successfully', req, status: 'success' });
 
     return successResponse(res, 'Login successful', {
       user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        farmName: user.farmName,
-        location: user.location,
+        id: user._id, name: user.name, email: user.email,
+        role: user.role, farmName: user.farmName, location: user.location,
       },
       accessToken,
       refreshToken,
     });
   } catch (error) {
-    await logAudit({
-      user: null,
-      action: 'LOGIN',
-      resource: 'User',
-      resourceId: null,
-      description: 'Login process failed (server error)',
-      req,
-      status: 'failed',
-    });
-
     next(error);
   }
 };
+
 
 // ── GET CURRENT USER ──────────────────────────────────
 export const getMe = async (req, res, next) => {
@@ -235,6 +214,21 @@ export const refreshToken = async (req, res, next) => {
 // ── LOGOUT ────────────────────────────────────────────
 export const logout = async (req, res, next) => {
   try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if(token) {
+      blacklistToken(token);
+    }
+
+    await logAudit({
+      user: req.user._id,
+      action: 'LOGIN',
+      resource: 'User',
+      resourceId: 'req.user._id',
+      description: 'user logged out - token blacklisted',
+      req,
+      status: 'success'
+    });
+
     return successResponse(res, 'Logged out successfully');
   } catch (error) {
     next(error);
@@ -272,7 +266,7 @@ export const forgotPassword = async (req, res, next) => {
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
-    // ✅ ALWAYS SEND EMAIL
+    // ALWAYS SEND EMAIL
     try {
       await sendEmail({
         to: user.email,

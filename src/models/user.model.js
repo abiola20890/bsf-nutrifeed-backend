@@ -62,6 +62,15 @@ const userSchema = new mongoose.Schema(
     passwordChangedAt: {
       type: Date,
     },
+    
+    hasAcceptedTerms: {
+      type: Boolean,
+      default: false,
+      required: [true, 'You must accept the terms of service'],
+    },
+    termsAcceptedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
